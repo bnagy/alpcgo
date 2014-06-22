@@ -1,12 +1,12 @@
-alpcgo
+Overview
 ======
 
 Go tools for basic ALPC hacking
 
-alpcgo
+package alpcgo
 ======
 
-Higher level API for basic ALPC functions liek Send, Connect...
+Higher level API for basic ALPC functions like Send, Connect...
 
 alpcechosrv
 ======
