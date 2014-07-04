@@ -15,12 +15,12 @@ const (
 func main() {
 
 	// Set up server port
-	log.Printf("Trying to create port %s", srvName)
+	log.Printf("trying to create port %s", srvName)
 	hServerConn, err := alpcgo.CreatePort(srvName)
 	if err != nil {
-		log.Fatalf("Unable to create server: %v", err)
+		log.Fatalf("unable to create server: %v", err)
 	}
-	log.Printf("Server port created with handle %x", hServerConn)
+	log.Printf("server port created with handle %x", hServerConn)
 
 	// Reusable buffers
 	context := &w32.ALPC_CONTEXT_ATTR{}
@@ -31,9 +31,9 @@ func main() {
 	pRecvAttrs.AllocatedAttributes = w32.ALPC_MESSAGE_CONTEXT_ATTRIBUTE
 	pRecvAttrs.ValidAttributes = w32.ALPC_MESSAGE_CONTEXT_ATTRIBUTE
 
-	// Keeping refs in this slice "tricks" the GC into not reaping the
+	// Keeping refs in this map "tricks" the GC into not reaping the
 	// pointers to the port contexts we create in the receive loop
-	handles := make([]*w32.AlpcPortContext, 16)
+	handles := make(map[*w32.AlpcPortContext]struct{})
 
 	for {
 
@@ -42,27 +42,27 @@ func main() {
 		// All messages arrive on the Server Connection port
 		_, err := alpcgo.Recv(hServerConn, &recvMsg, pRecvAttrs, nil)
 		if err != nil {
-			log.Fatalf("Server Recv: error: %v", err)
+			log.Fatalf("recv: error: %v", err)
 		}
 
 		if recvMsg.Type&w32.LPC_CONNECTION_REQUEST == w32.LPC_CONNECTION_REQUEST {
 
-			log.Printf("Server: Connection Message: % x", recvMsg.GetData())
+			log.Printf("connection Message: % x", recvMsg.GetData())
 
 			portContext := w32.AlpcPortContext{}
-			handles = append(handles, &portContext)
+			handles[&portContext] = struct{}{}
 			hServerComm, err := alpcgo.Accept(hServerConn, &portContext, &recvMsg, true)
 			if err != nil {
-				log.Fatalf("Server: Failed to accept client: %v", err)
+				log.Fatalf("failed to accept client: %v", err)
 			}
 			// Save the communication port handle in the context. We could
 			// save anything we wanted, this is an opaque blob.
 			portContext.Handle = hServerComm
-			log.Printf("Server: New Communication Port, handle: %x", hServerComm)
+			log.Printf("new Communication Port, handle: %x", hServerComm)
 
 		} else {
 
-			log.Printf("Server: Message: Type: %x Data: %s Continuation: %v",
+			log.Printf("message: Type: %x Data: %s Continuation: %v",
 				recvMsg.Type,
 				string(recvMsg.GetData()),
 				recvMsg.Type&w32.LPC_CONTINUATION_REQUIRED > 0,
@@ -80,13 +80,33 @@ func main() {
 
 				if commHandle != 0 {
 
+					if recvMsg.Type == w32.LPC_PORT_CLOSED || recvMsg.Type == w32.LPC_CLIENT_DIED {
+						log.Printf("client on handle 0x%x is gone.", commHandle)
+
+						e := w32.NtAlpcDisconnectPort(commHandle, 0)
+						res := w32.CloseHandle(commHandle) // kernel32!CloseHandle
+						if e == nil && res == true {
+							log.Printf("communication port 0x%x cleaned up and closed.", commHandle)
+						} else {
+							log.Printf("error cleaning up. kernel32!CloseHandle: %v NtAlpcDisconnectPort: %v", e, res)
+						}
+
+						// Clean up any context resources here
+						if _, found := handles[context.PortContext]; !found {
+							log.Printf("couldn't find 0x%x in handle map?", context.PortContext)
+						}
+						delete(handles, context.PortContext)
+
+						continue
+					}
+
 					msg := []byte(time.Now().String())
 					// If we don't reset the PORT_MESSAGE header fields then
 					// we can get all kinds of weird failures when we try to
 					// set assorted flags and things
 					sendMsg.Reset()
 					sendMsg.SetData(msg)
-					log.Printf("Server: Sending response \"%s\" to handle %x", string(msg), commHandle)
+					log.Printf("sending response \"%s\" to handle 0x%x", string(msg), commHandle)
 
 					e := alpcgo.Send(
 						commHandle,
@@ -97,13 +117,13 @@ func main() {
 					)
 
 					if e != nil {
-						log.Printf("Server: Failed to respond: %v", e)
+						log.Printf("failed to respond: %v", e)
 						continue
 					}
 				}
 
 			} else {
-				log.Fatalf("Context was nil :%#v", pMsgAttrs)
+				log.Fatalf("context was nil :%#v", pMsgAttrs)
 			}
 
 		}
