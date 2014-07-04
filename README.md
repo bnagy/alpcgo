@@ -31,6 +31,12 @@ alpcechoclij
 
 PoC Echo Client using the jsonrpc bridge
 
+alpcrest
+======
+
+A jsonrpc bridge that listens to http POST on a /rpc endpoint, for HLL clients
+that find that easier.
+
 misc/alpclog
 ======
 
