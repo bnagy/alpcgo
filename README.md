@@ -1,64 +1,67 @@
-Overview
-======
+# alpcgo
 
 Go tools for basic ALPC hacking. Built on my fork of
 https://github.com/AllenDang/w32 which has additions to ntdll and avdapi32 to
 support the required parts of the native API
 
-package alpcgo
-======
+This code is not heavily tested, its purpose is primarily didactic.
+
+## Documentation
+
+Use `import "github.com/bnagy/alpcgo"` in your own Go code.
+
+Get godoc at: http://godoc.org/github.com/bnagy/alpcgo
+
+## Installation
+
+You should follow the [instructions](https://golang.org/doc/install) to
+install Go, if you haven't already done so. Then:
+
+```bash
+$ go get github.com/bnagy/alpcgo
+```
+
+## package alpcgo
 
 Higher level API for basic ALPC functions like Send, Connect...
 
-alpcechosrv
-======
+## Utility Commands ( cmd/ directory )
+
+### alpcechosrv
 
 PoC Echo Server ( part of hello world )
 
-alpcechocli
-======
+### alpcechocli
 
 PoC Echo Client ( part of hello world )
 
-alpcbridge
-======
+### alpcbridge
 
 JSON-RPC bridge with a simple API. Designed to make it easy to connect to raw
 ALPC ports from any language to build fuzzers or other tools.
 
-alpcechoclij
-======
+### alpcechoclij
 
 PoC Echo Client using the jsonrpc bridge
 
-alpcrest
-======
+### alpcrest
 
 A jsonrpc bridge that listens to http POST on a /rpc endpoint, for HLL clients
 that find that easier.
 
-misc/alpclog
-======
-
-Quick Ruby script to log ALPC messages received by a process. Should work for most processes, but not on unbreakable system processes ( csrss etc ). Requires https://github.com/bnagy/rBuggery >= v1.1.0
-
-TODO:
-=======
+## TODO
 
 - Add Attribute support
 
-BUGS
-=======
+## Bugs
 
 - No x86 suppport
 
-Contributing
-=======
+## Contributing
 
 Fork & pullreq
 
-License
-=======
+## License
 
 BSD Style, See LICENSE file for details
 
